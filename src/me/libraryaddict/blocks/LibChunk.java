@@ -1,15 +1,29 @@
 package me.libraryaddict.blocks;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
 import me.libraryaddict.blocks.utils.LibChunkSection;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
-import org.bukkit.craftbukkit.v1_7_R3.block.CraftBlock;
 
 public class LibChunk {
-
+    private static Method getBiomeData;
+    private static Field getBiomeId;
+    static {
+        try {
+            getBiomeData = Class.forName(
+                    "org.bukkit.craftbukkit." + Bukkit.getServer().getClass().getName().split("\\.")[3] + ".block.CraftBlock")
+                    .getMethod("biomeToBiomeBase", Biome.class);
+            getBiomeId = getBiomeData.getReturnType().getField("id");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     private byte[] biomeData;
     private LibChunkSection[] chunkSections;
     private int chunkX, chunkZ;
@@ -101,7 +115,11 @@ public class LibChunk {
     }
 
     public void setBiome(int x, int z, Biome biome) {
-        biomeData[((z & 0xF) << 4) | (x & 0xF)] = (byte) CraftBlock.biomeToBiomeBase(biome).id;
+        try {
+            biomeData[((z & 0xF) << 4) | (x & 0xF)] = (byte) getBiomeId.getInt(getBiomeData.invoke(null, biome));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     public void setBlock(int x, int y, int z, int id, byte data) {
